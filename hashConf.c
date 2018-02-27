@@ -189,10 +189,9 @@ conf_t *initAndParseConfig(const char *file) {
         return NULL;
     }
 
-    int n = 0, k = 0, mode;
-    char const  *v, *name;
+    int n = 0, mode;
+    char const *name;
     int users_count = config_setting_length(users);
-
     hashtable_t *hashtable = ht_create( users_count );
 
     while (1) {
@@ -219,25 +218,5 @@ conf_t *initAndParseConfig(const char *file) {
 
     config_destroy(&cfg);
 
-    printf("Done\n");
-
     return config;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

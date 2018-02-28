@@ -6,19 +6,16 @@ int main() {
 
     conf_t * config = initAndParseConfig(file);
 
-    char ks[100] = "selfcheck";
-    char cs[100] = "SELECT";
-    checkIt(ks, cs, &config->users);
 
-    char s[100] = "anton";
-    char c[100] = "redrussian";
-    checkIt(s, c, &config->users);
-
-
-    char a[100] = "admin";
-    char b[100] = "INFO";
-    checkIt(a, b, &config->users);
-
+    checkIt("selfcheck", "SELECT", &config->users);
+    checkIt("anton",     "redrussian", &config->users);
+    checkIt("anton",     "kurac", &config->users);
+    checkIt("admin",     "ZSET", &config->users);
+    checkIt("piso",      "SELECT", &config->users);
+    checkIt("piso",      "Kurac", &config->users);
+    checkIt("piso",      "ZRANGE", &config->users);
+    checkIt("piso",      "INFO", &config->users);
+    checkIt("piso",      "ZSCAN", &config->users);
 
     ConfDestroy(config);
     return 0;

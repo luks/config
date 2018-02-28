@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
 #include <libconfig.h>
+#include <zconf.h>
 #include "hashConf.h"
 
 hashtable_t *ht_create( int size ) {
@@ -116,15 +116,14 @@ void checkIt(char *key, char *command, hashtable_t **hashtable) {
     user_t *user = ht_get( *hashtable, key);
 
     if(NULL == user) {
-        printf("Key  not found in hash\n");
-        printf("Key [%s] not found in hash [%s]\n", key, command);
+        printf("User [%s] not found in configuration.\n", key);
     } else {
         trieNode_t *tPtr = NULL;
         tPtr = TrieSearch(user->list->children, command);
         if(NULL == tPtr ) {
-            printf("Command [%s] not found in key [%s] trie\n", command, key);
+            printf("User [%s] command [%s] not found.\n", key, command);
         } else {
-            printf("Command [%s] found in key [%s] trie\n", command, key);
+            printf("User [%s] command [%s] found.\n", key, command);
         }
     }
 }

@@ -29,11 +29,12 @@ hashtable_t *ht_create( int size ) {
 
 int ht_hash( hashtable_t *hashtable, char *key ) {
 
-    unsigned long int hashval;
+    unsigned long int hashval = 1;
     int i = 0;
+    int size = 8;
 
     while( hashval < ULONG_MAX && i < strlen( key ) ) {
-        hashval = hashval << 8;
+        hashval = hashval << size;
         hashval += key[ i ];
         i++;
     }
@@ -116,6 +117,7 @@ void checkIt(char *key, char *command, hashtable_t **hashtable) {
 
     if(NULL == user) {
         printf("Key  not found in hash\n");
+        printf("Key [%s] not found in hash [%s]\n", key, command);
     } else {
         trieNode_t *tPtr = NULL;
         tPtr = TrieSearch(user->list->children, command);
@@ -136,6 +138,36 @@ conf_t *conf_create() {
     }
 
     return conf;
+}
+
+void ConfDestroy( conf_t* config ) {
+    int i;
+    int size = config->users->size;
+    for( i = 0; i < size; i++ ) {
+        if (NULL != config->users->table[i]) {
+            delete_entry(config->users->table[i]);
+        }
+    }
+    free(config->users->table);
+    free(config->users);
+    free(config);
+}
+
+void delete_entry( entry_t *entry ) {
+
+    entry_t *last = NULL;
+    while( entry != NULL && entry->key != NULL ) {
+        last = entry;
+        entry = entry->next;
+        delete_user(last->value);
+        free(last->key);
+        free(last);
+    }
+}
+
+void delete_user( user_t *us ) {
+    TrieDestroy(us->list);
+    free(us);
 }
 
 user_t *create_user(config_setting_t *user, char const *name, int mode, const config_setting_t *array) {

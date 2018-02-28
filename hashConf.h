@@ -44,4 +44,8 @@ conf_t *initAndParseConfig(const char *file);
 
 conf_t *conf_create();
 
+void ConfDestroy( conf_t* config );
 
+void delete_user( user_t *us );
+
+void delete_entry( entry_t *entry );

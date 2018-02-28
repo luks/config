@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include <libconfig.h>
 #include <zconf.h>
 #include "hashConf.h"
 
@@ -111,9 +110,9 @@ user_t *ht_get( hashtable_t *hashtable, char *key ) {
     }
 }
 
-void checkIt(char *key, char *command, hashtable_t **hashtable) {
+void checkIt(char *key, char *command, hashtable_t *hashtable) {
 
-    user_t *user = ht_get( *hashtable, key);
+    user_t *user = ht_get( hashtable, key);
 
     if(NULL == user) {
         printf("User [%s] not found in configuration.\n", key);
@@ -149,6 +148,10 @@ void ConfDestroy( conf_t* config ) {
     }
     free(config->users->table);
     free(config->users);
+    free(config->log_level);
+    free(config->log_file);
+    free(config->bind);
+    free(config->redis);
     free(config);
 }
 
@@ -164,12 +167,24 @@ void delete_entry( entry_t *entry ) {
     }
 }
 
-void delete_user( user_t *us ) {
-    TrieDestroy(us->list);
-    free(us);
+void delete_user( user_t *user ) {
+    TrieDestroy(user->list);
+    free(user->name);
+    free(user);
 }
 
-user_t *create_user(config_setting_t *user, char const *name, int mode, const config_setting_t *array) {
+int checkAndLoadConfig(config_t *cfg, const char *file) {
+    config_init(cfg);
+    if (!config_read_file(cfg, file)) {
+        fprintf(stderr, "%s:%d - %s\n", config_error_file(cfg),
+                config_error_line(cfg), config_error_text(cfg));
+        config_destroy(cfg);
+        return 1;
+    }
+    return 0;
+}
+
+user_t *create_user(config_setting_t *user, const char *name, int mode, const config_setting_t *array) {
 
     user_t *us = NULL;
     trieNode_t *tree;
@@ -181,7 +196,7 @@ user_t *create_user(config_setting_t *user, char const *name, int mode, const co
     char const *v;
     int k = 0;
 
-    us->name = name;
+    us->name = strdup(name);
     us->mode = mode;
 
     array = config_setting_get_member(user, "function_list");
@@ -201,27 +216,18 @@ user_t *create_user(config_setting_t *user, char const *name, int mode, const co
     return us;
 }
 
-conf_t *initAndParseConfig(const char *file) {
+hashtable_t *create_users(config_t *cfg) {
 
-    conf_t * config = conf_create();
-
-    struct config_t cfg;
-    config_init(&cfg);
-
-    if (!config_read_file(&cfg, file)) {
-        printf("failed\n");
-        return NULL;
-    }
-
+    int n = 0;
+    int mode;
+    const char *name;
     config_setting_t *users, *user;
-    users = config_lookup(&cfg, "users");
+    users = config_lookup(cfg, "users");
     if (users == NULL) {
         printf("no users\n");
+        config_destroy(cfg);
         return NULL;
     }
-
-    int n = 0, mode;
-    char const *name;
     int users_count = config_setting_length(users);
     hashtable_t *hashtable = ht_create( users_count );
 
@@ -240,14 +246,51 @@ conf_t *initAndParseConfig(const char *file) {
 
         user_t *conf_user = create_user(user, name, mode, array);
 
-        ht_set( hashtable, (char *) name, conf_user);
+        ht_set( hashtable, (char*) name, conf_user);
 
         ++n;
     }
+    return hashtable;
 
-    config->users = hashtable;
+}
+
+
+conf_t *initAndParseConfig(const char *file) {
+
+    config_t cfg;
+    checkAndLoadConfig(&cfg, file);
+    conf_t * app_config = conf_create();
+
+    const char * log_level;
+    const char * log_file;
+    const char * bind;
+    const char * redis;
+
+    if(config_lookup_string(&cfg, "log_level", &log_level)) {
+        app_config->log_level = strdup(log_level);
+    } else {
+        fprintf(stderr, "No 'log_level' setting in configuration file.\n");
+    }
+    if(config_lookup_string(&cfg, "log_file", &log_file))
+        app_config->log_file = strdup(log_file);
+    else
+        fprintf(stderr, "No 'log_file' setting in configuration file.\n");
+
+    if(config_lookup_string(&cfg, "bind", &bind))
+        app_config->bind = strdup(bind);
+    else
+        fprintf(stderr, "No 'bind' setting in configuration file.\n");
+
+    if(config_lookup_string(&cfg, "redis", &redis))
+        app_config->redis = strdup(redis);
+    else
+        fprintf(stderr, "No 'redis' setting in configuration file.\n");
+
+    hashtable_t *hashtable = create_users(&cfg);
+
+    app_config->users = hashtable;
 
     config_destroy(&cfg);
 
-    return config;
+    return app_config;
 }

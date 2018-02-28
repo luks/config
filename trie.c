@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <yaml.h>
+#include <ctype.h>
 #include "trie.h"
 
 
@@ -21,7 +22,7 @@ trieNode_t *TrieCreateNode(char key, int data)
         return node;
     }
 
-    node->key = key;
+    node->key = toupper(key);
     node->next = NULL;
     node->children = NULL;
     node->value = data;
